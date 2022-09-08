@@ -1,3 +1,7 @@
+from collections import deque
+from xml.dom import NotFoundErr
+
+
 class Graph:
     def __init__(self):
         self.vertexes = {}
@@ -6,7 +10,7 @@ class Graph:
         return self.vertexes[key]["value"]
 
     def __setitem__(self, key, value):
-        vertex = self.vertexes.get(key, {"neighbors": []})
+        vertex = self.vertexes.get(key, {"edges": []})
         vertex["value"] = value
         self.vertexes.update(key, vertex)
  
@@ -14,38 +18,56 @@ class Graph:
 
     def __delitem__(self, key):
         if key in self.vertexes:
-            for neighbor in self.vertexes[key]["neighbors"]:
+            for neighbor in self.vertexes[key]["edges"]:
                 try:
-                    self.vertexes[neighbor]["neihbors"].remove(key)
+                    self.vertexes[neighbor]["edges"].remove(key)
                 except(ValueError):
                     pass
 
         return self
 
-
-
-    def add_vertex(self, id, vertex, neighbors):
-        self.vertexes[id] = self.vertexes.update(id, {
-            "value": vertex,
-            "neighbors": neighbors
+    def add_vertex(self, vertex, value, edges):
+        self.vertexes.update({
+            vertex: {
+                "value": value,
+                "edges": edges
+            }
         })
-        for v in neighbors:
-            self.vertexes.update(v, {
-                "neighbors": self.vertexes.get(v, {"neighbors": []})["neighbors"].append(id)                
-            })
+        for neighbor_id in edges:
+            neighbor = self.vertexes.get(neighbor_id, {"value": None, "edges":[]})
+            neighbor["edges"].append(id)
+            self.vertexes.update({neighbor_id: neighbor})
+
+        return self
 
     def add_edge(self, id_vertex_1, id_vertex_2):
-        v1 = self.vertexes.get(id_vertex_1, {"neighbors": []})
-        v2 = self.vertexes.get(id_vertex_2, {"neighbors": []})
-
-        v1["neighbors"] += [id_vertex_2]
-        v2["neighbors"] += [id_vertex_1]
+        if id_vertex_1 not in self.vertexes:
+            raise ValueError(f"{id_vertex_1} is not a vertex in the graph")
+        if id_vertex_2 not in self.vertexes:
+            raise ValueError(f"{id_vertex_2} is not a vertex in the graph")
  
-        self.vertexes.update(id_vertex_1, v1)
-        self.vertexes.update(id_vertex_2, v2)
+        self.vertexes[id_vertex_1]["edges"].append(id_vertex_2)
+        self.vertexes[id_vertex_2]["edges"].append(id_vertex_1)
 
-    def bfs(self, start, value):
-        pass
+        return self
+
+    def bfs(self, start, needle):
+        queue = deque()
+
+        if start not in self.vertexes:
+            raise ValueError("There is no vertex labeled {}".format(start))
+
+        queue.append(start)
+
+        while len(queue):
+            cursor = queue.popleft()
+
+            if cursor == needle:
+                return self.vertexes[cursor]["value"]
+            for vertex in self.vertexes[cursor["edges"]]:
+                queue.append(vertex)
+
+        raise NotFoundErr("Vertex {} not in graph".format(needle))
 
     def dfs(self, start, value):
         pass
