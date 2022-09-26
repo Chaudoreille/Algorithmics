@@ -3,43 +3,48 @@ from multiprocessing.sharedctypes import Value
 from typing import Type
 from xml.dom import NotFoundErr
 
+def vertex(container):
+    if type(container) is dict:
+        for key, value in container.items():
+            match key:
+                case "attributes":
+                    if type(value) is not dict:
+                        raise TypeError(f"{type(value)} is not a dictionary")
+                case "edges":
+                    if type(value) is not list:
+                        raise TypeError(f"{type(value)} is not a list")
+                case _:
+                    raise KeyError(f"{key} should be one of 'attributes' or 'edges'")
+        return container
+    else:
+        return {"edges": list(container)}
 
 class Graph:
-    def __init__(self, vertexes={}):
+    def __init__(self, vertexes=None):
+        if vertexes == None:
+            vertexes = {}
+
         if type(vertexes) is dict:
             self.vertexes = vertexes
         else:
-            raise TypeError("vertexes should be a dictionary")
+            raise TypeError(f"{type(vertexes)} is not a dictionary")
 
         for v in self.vertexes:
-            if type(self.vertexes[v]) is dict:
-                for key, value in self.vertexes[v].items():
-                    match key:
-                        case "attributes":
-                            if type(value) is not dict:
-                                raise TypeError(f"attributes for {v} should be a dictionary")
-                        case "edges":
-                            if type(value) is not list:
-                                raise TypeError(f"edges for {v} should be a dictionary")
-                        case _:
-                            raise KeyError(f"{key} is not a valid key for graph vertex. Only \"attributes\" and \"edges\" allowed")
-            elif type(self.vertexes[v]) is list:
-                ## if value is a list, we assume it's a list of edges
-                self.vertexes.update({v: {"edges": self.vertexes[v]}})
-
+            self.vertexes.update({v: vertex(self.vertexes[v])})
     
     def __getitem__(self, key):
-        return self.vertexes[key]["value"]
+        return self.vertexes[key]["attributes"]
 
     def __setitem__(self, key, value):
-        vertex = self.vertexes.get(key, {"edges": []})
-        vertex["value"] = value
-        self.vertexes.update(key, vertex)
+        self.vertexes.update({key: vertex(value)})
 
         return self
 
     def __len__(self):
         return len(self.vertexes)
+
+    def __str__(self):
+        return str(self.vertexes)
 
     def __delitem__(self, key):
         if key in self.vertexes:

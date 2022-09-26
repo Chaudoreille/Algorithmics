@@ -19,6 +19,16 @@ class TestBfs(TestCase):
 
         self.assertEqual(length, 0)
 
+    def test_graph_with_valid_dict(self):
+        dict = {
+            "A" : {"attributes": {}, "edges": ["B"]},
+            "B" : {"attributes": {}, "edges": ["A"]}
+        }
+        graph = Graph(dict)
+        length = len(graph)
+
+        self.assertEqual(length, 2)
+
     def test_value_not_in_graph(self):
         graph = Graph(DEFAULT_GRAPH)
         START_NODE = 'A'
