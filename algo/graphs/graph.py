@@ -1,10 +1,32 @@
 from collections import deque
+from multiprocessing.sharedctypes import Value
+from typing import Type
 from xml.dom import NotFoundErr
 
 
 class Graph:
-    def __init__(self):
-        self.vertexes = {}
+    def __init__(self, vertexes={}):
+        if type(vertexes) is dict:
+            self.vertexes = vertexes
+        else:
+            raise TypeError("vertexes should be a dictionary")
+
+        for v in self.vertexes:
+            if type(self.vertexes[v]) is dict:
+                for key, value in self.vertexes[v].items():
+                    match key:
+                        case "attributes":
+                            if type(value) is not dict:
+                                raise TypeError(f"attributes for {v} should be a dictionary")
+                        case "edges":
+                            if type(value) is not list:
+                                raise TypeError(f"edges for {v} should be a dictionary")
+                        case _:
+                            raise KeyError(f"{key} is not a valid key for graph vertex. Only \"attributes\" and \"edges\" allowed")
+            elif type(self.vertexes[v]) is list:
+                ## if value is a list, we assume it's a list of edges
+                self.vertexes.update({v: {"edges": self.vertexes[v]}})
+
     
     def __getitem__(self, key):
         return self.vertexes[key]["value"]
@@ -13,8 +35,11 @@ class Graph:
         vertex = self.vertexes.get(key, {"edges": []})
         vertex["value"] = value
         self.vertexes.update(key, vertex)
- 
+
         return self
+
+    def __len__(self):
+        return len(self.vertexes)
 
     def __delitem__(self, key):
         if key in self.vertexes:
@@ -53,9 +78,10 @@ class Graph:
 
     def bfs(self, start, needle):
         queue = deque()
+        visited = set()
 
         if start not in self.vertexes:
-            raise ValueError("There is no vertex labeled {}".format(start))
+            raise ValueError(f"There is no vertex labeled {start}")
 
         queue.append(start)
 
@@ -63,11 +89,15 @@ class Graph:
             cursor = queue.popleft()
 
             if cursor == needle:
-                return self.vertexes[cursor]["value"]
-            for vertex in self.vertexes[cursor["edges"]]:
-                queue.append(vertex)
+                return cursor
 
-        raise NotFoundErr("Vertex {} not in graph".format(needle))
+            for neighbor in self.vertexes[cursor]["edges"]:
+                if neighbor not in visited:
+                    queue.append(neighbor)
+    
+            visited.add(cursor)
+
+        raise NotFoundErr(f"Vertex {needle} not in graph")
 
     def dfs(self, start, value):
         pass
